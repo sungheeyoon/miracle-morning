@@ -5,22 +5,23 @@ part 'todo_model.freezed.dart';
 part 'todo_model.g.dart';
 
 @freezed
-class Todo with _$Todo {
-  const factory Todo({
+class TodoModel with _$TodoModel {
+  const factory TodoModel({
     required String id,
     required String title,
     String? description,
     @Default(false) bool isCompleted,
     required DateTime createdAt,
-  }) = _Todo;
+  }) = _TodoModel;
 
-  factory Todo.fromJson(Map<String, dynamic> json) => _$TodoFromJson(json);
+  factory TodoModel.fromJson(Map<String, dynamic> json) =>
+      _$TodoModelFromJson(json);
 
-  factory Todo.create({
+  factory TodoModel.create({
     required String title,
     String? description,
   }) {
-    return Todo(
+    return TodoModel(
       id: const Uuid().v4(),
       title: title,
       description: description,

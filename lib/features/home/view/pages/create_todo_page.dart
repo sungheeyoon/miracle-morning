@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:miracle_morning/models/todo_model.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:miracle_morning/features/home/models/todo_model.dart';
+import 'package:miracle_morning/features/home/viewmodel/home_viewmodel.dart';
 
-class CreateTodoPage extends StatefulWidget {
-  final Todo? todo;
+class CreateTodoPage extends ConsumerStatefulWidget {
+  final TodoModel? todo;
 
   const CreateTodoPage({super.key, this.todo});
 
   @override
-  _CreateTodoPageState createState() => _CreateTodoPageState();
+  ConsumerState<CreateTodoPage> createState() => _CreateTodoPageState();
 }
 
-class _CreateTodoPageState extends State<CreateTodoPage> {
+class _CreateTodoPageState extends ConsumerState<CreateTodoPage> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
 
@@ -35,12 +37,14 @@ class _CreateTodoPageState extends State<CreateTodoPage> {
       return;
     }
 
-    final Todo newTodo = widget.todo != null
+    final TodoModel newTodo = widget.todo != null
         ? widget.todo!.copyWith(title: title, description: description)
-        : Todo.create(
+        : TodoModel.create(
             title: title,
             description: description,
           );
+
+    ref.read(homeViewModelProvider.notifier).updateTodo(newTodo);
 
     Navigator.pop(context, newTodo);
   }

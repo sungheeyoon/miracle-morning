@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:miracle_morning/models/todo_model.dart';
+import 'package:miracle_morning/features/home/models/todo_model.dart';
 
 class TodoCard extends StatelessWidget {
-  final Todo todo;
+  final TodoModel todo;
   final void Function(bool?)? onChanged;
   final Widget? actions;
 
