@@ -14,13 +14,16 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
+  Duration duration = const Duration(hours: 1, minutes: 23);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text('Home'),
       ),
-      body: ref.watch(getAllTodosProvider).when(
+      body: ref.watch(homeViewModelProvider).when(
             data: (todos) {
               // todos 리스트가 비어 있는 경우 처리
               if (todos.isEmpty) {
@@ -33,18 +36,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               }
 
               return ListView.builder(
-                itemCount: todos.length + 1, // 'Add' 버튼 추가를 위해 +1
+                itemCount: todos.length,
                 itemBuilder: (context, index) {
-                  if (index == todos.length) {
-                    // Add 버튼
-                    return Center(
-                      child: ElevatedButton(
-                        onPressed: () {},
-                        child: const Text('Add Todo'),
-                      ),
-                    );
-                  }
-
                   // Todo 항목
                   final todo = todos[index];
                   return TodoCard(
@@ -102,7 +95,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, stack) => ErrorPage(
               errorMessage: error.toString(),
-              onRetry: () async => await ref.read(getAllTodosProvider),
+              onRetry: () async => await ref.read(homeViewModelProvider),
             ),
           ),
       floatingActionButton: FloatingActionButton(

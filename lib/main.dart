@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:miracle_morning/features/home/view/pages/home_page.dart';
-import 'package:miracle_morning/features/home/viewmodel/home_viewmodel.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:miracle_morning/core/notification/notification_service.dart';
+import 'package:miracle_morning/main_page.dart';
+import 'package:timezone/data/latest.dart' as tz;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final container = ProviderContainer();
-  await container.read(homeViewModelProvider.notifier).initSharedPreferences();
+  await Hive.initFlutter();
+  tz.initializeTimeZones();
+  final localNotificationService = LocalNotificationService();
+  await localNotificationService.initialize();
   runApp(
-    UncontrolledProviderScope(
-      container: container,
-      child: const MyApp(),
+    const ProviderScope(
+      child: MyApp(),
     ),
   );
 }
@@ -26,7 +29,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      home: const MainPage(),
     );
   }
 }

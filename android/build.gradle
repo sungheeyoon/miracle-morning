@@ -1,3 +1,14 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // Android Gradle Plugin(AGP) 버전 설정
+        classpath 'com.android.tools.build:gradle:7.3.1'
+    }
+}
+
 allprojects {
     repositories {
         google()

@@ -1,28 +1,28 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'home_local_repository.dart';
+part of 'setting_repository.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$homeLocalRepositoryHash() =>
-    r'3e3ad11a59b45e1ec2bdaa139c5855c8ca360e2b';
+String _$settingRepositoryHash() => r'63846edd3bb2bd389c3a8cabe4a6fa51d75aecd9';
 
-/// See also [homeLocalRepository].
-@ProviderFor(homeLocalRepository)
-final homeLocalRepositoryProvider = Provider<HomeLocalRepository>.internal(
-  homeLocalRepository,
-  name: r'homeLocalRepositoryProvider',
+/// See also [settingRepository].
+@ProviderFor(settingRepository)
+final settingRepositoryProvider =
+    AutoDisposeProvider<SettingRepository>.internal(
+  settingRepository,
+  name: r'settingRepositoryProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
       ? null
-      : _$homeLocalRepositoryHash,
+      : _$settingRepositoryHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef HomeLocalRepositoryRef = ProviderRef<HomeLocalRepository>;
+typedef SettingRepositoryRef = AutoDisposeProviderRef<SettingRepository>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

@@ -24,7 +24,7 @@ class _CreateTodoPageState extends ConsumerState<CreateTodoPage> {
         TextEditingController(text: widget.todo?.description ?? '');
   }
 
-  void _createOrUpdateTodo() {
+  void _saveTodo() async {
     final String title = _titleController.text.trim();
     final String? description = _descriptionController.text.trim().isNotEmpty
         ? _descriptionController.text.trim()
@@ -37,6 +37,7 @@ class _CreateTodoPageState extends ConsumerState<CreateTodoPage> {
       return;
     }
 
+    // 새로운 Todo 생성 or 업데이트
     final TodoModel newTodo = widget.todo != null
         ? widget.todo!.copyWith(title: title, description: description)
         : TodoModel.create(
@@ -44,9 +45,18 @@ class _CreateTodoPageState extends ConsumerState<CreateTodoPage> {
             description: description,
           );
 
-    ref.read(homeViewModelProvider.notifier).updateTodo(newTodo);
+    final notifier = ref.read(homeViewModelProvider.notifier);
 
-    Navigator.pop(context, newTodo);
+    // 새 항목이면 추가, 기존 항목이면 업데이트
+    if (widget.todo == null) {
+      await notifier.addTodo(newTodo);
+    } else {
+      await notifier.updateTodo(newTodo);
+    }
+
+    if (mounted) {
+      Navigator.pop(context, newTodo);
+    }
   }
 
   @override
@@ -79,7 +89,7 @@ class _CreateTodoPageState extends ConsumerState<CreateTodoPage> {
             const SizedBox(height: 24),
             Center(
               child: ElevatedButton(
-                onPressed: _createOrUpdateTodo,
+                onPressed: _saveTodo,
                 child:
                     Text(widget.todo != null ? 'Update Todo' : 'Create Todo'),
               ),
