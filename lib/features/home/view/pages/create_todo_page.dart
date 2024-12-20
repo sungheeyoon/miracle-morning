@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:miracle_morning/core/providers/selected_date_provider.dart';
 import 'package:miracle_morning/features/home/models/todo_model.dart';
 import 'package:miracle_morning/features/home/viewmodel/home_viewmodel.dart';
 
@@ -25,6 +26,7 @@ class _CreateTodoPageState extends ConsumerState<CreateTodoPage> {
   }
 
   void _saveTodo() async {
+    final selectedDate = ref.watch(selectedDateProvider);
     final String title = _titleController.text.trim();
     final String? description = _descriptionController.text.trim().isNotEmpty
         ? _descriptionController.text.trim()
@@ -48,11 +50,8 @@ class _CreateTodoPageState extends ConsumerState<CreateTodoPage> {
     final notifier = ref.read(homeViewModelProvider.notifier);
 
     // 새 항목이면 추가, 기존 항목이면 업데이트
-    if (widget.todo == null) {
-      await notifier.addTodo(newTodo);
-    } else {
-      await notifier.updateTodo(newTodo);
-    }
+
+    await notifier.saveOrUpdateTodo(selectedDate, newTodo);
 
     if (mounted) {
       Navigator.pop(context, newTodo);

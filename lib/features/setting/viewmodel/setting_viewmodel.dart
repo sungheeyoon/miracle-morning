@@ -1,69 +1,52 @@
+// lib/features/setting/viewmodel/setting_viewmodel.dart
 import 'package:flutter/material.dart';
-import 'package:fpdart/fpdart.dart';
-import 'package:miracle_morning/core/failure/failure.dart';
 import 'package:miracle_morning/features/setting/models/notification_model.dart';
+import 'package:miracle_morning/features/setting/models/setting_state_model.dart';
 import 'package:miracle_morning/features/setting/repositories/notification_repository.dart';
 import 'package:miracle_morning/features/setting/repositories/setting_repository.dart';
-import 'package:miracle_morning/features/setting/models/setting_state_model.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'setting_viewmodel.g.dart';
 
-@Riverpod(keepAlive: true)
+@riverpod
 class SettingViewModel extends _$SettingViewModel {
-  late final NotificationRepository _notificationRepository;
-  late final SettingRepository _settingRepository;
-
   @override
   Future<SettingStateModel> build() async {
-    _notificationRepository = ref.watch(notificationRepositoryProvider);
-    _settingRepository = ref.watch(settingRepositoryProvider);
+    // 비동기적으로 Repository Providers를 초기화
+    final notificationRepository =
+        await ref.watch(notificationRepositoryProvider.future);
+    final settingRepository = await ref.watch(settingRepositoryProvider.future);
 
-    final initResult = await _initializeRepositories();
-
-    // 초기화 실패 시
-    if (initResult.isLeft()) {
-      final failure = initResult.getLeft().toNullable();
-      _setError(failure?.message ?? 'Repository initialization failed');
-      throw Exception(failure?.message); // 실행 흐름 중단
-    }
-
-    return _initialize();
-  }
-
-  /// 레포지토리 초기화
-  Future<Either<AppFailure, Unit>> _initializeRepositories() async {
-    final notificationInit = await _notificationRepository.init();
-    final settingInit = await _settingRepository.init();
-
-    if (notificationInit.isLeft() || settingInit.isLeft()) {
-      return Left(AppFailure('Repository initialization failed'));
-    }
-
-    return const Right(unit);
+    return _initialize(notificationRepository, settingRepository);
   }
 
   /// 초기 상태 로드
-  Future<SettingStateModel> _initialize() async {
+  Future<SettingStateModel> _initialize(
+    NotificationRepository notificationRepository,
+    SettingRepository settingRepository,
+  ) async {
     bool isAllNotificationEnabled = false;
 
     // 전역 알림 상태 로드
-    final globalStateResult =
-        await _settingRepository.getGlobalNotificationState();
+    final globalStateResult = await settingRepository.getSettingState();
     globalStateResult.fold(
-      (failure) =>
-          state = AsyncValue.error(failure.message, StackTrace.current),
-      (state) => isAllNotificationEnabled = state,
+      (failure) {
+        state = AsyncValue.error(failure.message, StackTrace.current);
+      },
+      (stateValue) {
+        isAllNotificationEnabled = stateValue;
+      },
     );
 
     // TODO 알림 로드
     bool isTodoNotificationEnabled = isAllNotificationEnabled;
     TimeOfDay todoNotificationTime = const TimeOfDay(hour: 8, minute: 0);
     final todoResult =
-        await _notificationRepository.getNotification(NotificationType.todo);
+        await notificationRepository.getNotification(NotificationType.todo);
     todoResult.fold(
-      (failure) =>
-          state = AsyncValue.error(failure.message, StackTrace.current),
+      (failure) {
+        state = AsyncValue.error(failure.message, StackTrace.current);
+      },
       (todoNotification) {
         isTodoNotificationEnabled = todoNotification.isEnabled;
         todoNotificationTime = todoNotification.time;
@@ -74,10 +57,11 @@ class SettingViewModel extends _$SettingViewModel {
     bool isCheckNotificationEnabled = isAllNotificationEnabled;
     TimeOfDay checkNotificationTime = const TimeOfDay(hour: 21, minute: 0);
     final checkResult =
-        await _notificationRepository.getNotification(NotificationType.check);
+        await notificationRepository.getNotification(NotificationType.check);
     checkResult.fold(
-      (failure) =>
-          state = AsyncValue.error(failure.message, StackTrace.current),
+      (failure) {
+        state = AsyncValue.error(failure.message, StackTrace.current);
+      },
       (checkNotification) {
         isCheckNotificationEnabled = checkNotification.isEnabled;
         checkNotificationTime = checkNotification.time;
@@ -95,7 +79,8 @@ class SettingViewModel extends _$SettingViewModel {
 
   /// 전역 알림 토글
   Future<void> toggleAllNotifications(bool isEnabled) async {
-    final res = await _settingRepository.setGlobalNotificationState(isEnabled);
+    final settingRepository = await ref.watch(settingRepositoryProvider.future);
+    final res = await settingRepository.setSettingState(isEnabled);
     res.fold(
       (failure) => _setError(failure.message),
       (_) {
@@ -106,23 +91,33 @@ class SettingViewModel extends _$SettingViewModel {
 
   /// TODO 알림 토글
   Future<void> toggleTodoNotification(bool isEnabled) async {
+    final notificationRepository =
+        await ref.watch(notificationRepositoryProvider.future);
+    final settingRepository = await ref.watch(settingRepositoryProvider.future);
     await _toggleNotification(
       NotificationType.todo,
       isEnabled,
       state.value!.todoNotificationTime,
       (updatedState) =>
           updatedState.copyWith(isTodoNotificationEnabled: isEnabled),
+      notificationRepository,
+      settingRepository,
     );
   }
 
   /// CHECK 알림 토글
   Future<void> toggleCheckNotification(bool isEnabled) async {
+    final notificationRepository =
+        await ref.watch(notificationRepositoryProvider.future);
+    final settingRepository = await ref.watch(settingRepositoryProvider.future);
     await _toggleNotification(
       NotificationType.check,
       isEnabled,
       state.value!.checkNotificationTime,
       (updatedState) =>
           updatedState.copyWith(isCheckNotificationEnabled: isEnabled),
+      notificationRepository,
+      settingRepository,
     );
   }
 
@@ -132,8 +127,10 @@ class SettingViewModel extends _$SettingViewModel {
     bool isEnabled,
     TimeOfDay time,
     SettingStateModel Function(SettingStateModel) updateState,
+    NotificationRepository notificationRepository,
+    SettingRepository settingRepository,
   ) async {
-    final res = await _notificationRepository.setNotification(
+    final res = await notificationRepository.setNotification(
       type,
       NotificationModel(isEnabled: isEnabled, time: time),
     );
@@ -146,19 +143,29 @@ class SettingViewModel extends _$SettingViewModel {
 
   /// TODO 알림 시간 업데이트
   Future<void> updateTodoNotificationTime(TimeOfDay time) async {
+    final notificationRepository =
+        await ref.watch(notificationRepositoryProvider.future);
+    final settingRepository = await ref.watch(settingRepositoryProvider.future);
     await _updateNotificationTime(
       NotificationType.todo,
       time,
       (updatedState) => updatedState.copyWith(todoNotificationTime: time),
+      notificationRepository,
+      settingRepository,
     );
   }
 
   /// CHECK 알림 시간 업데이트
   Future<void> updateCheckNotificationTime(TimeOfDay time) async {
+    final notificationRepository =
+        await ref.watch(notificationRepositoryProvider.future);
+    final settingRepository = await ref.watch(settingRepositoryProvider.future);
     await _updateNotificationTime(
       NotificationType.check,
       time,
       (updatedState) => updatedState.copyWith(checkNotificationTime: time),
+      notificationRepository,
+      settingRepository,
     );
   }
 
@@ -167,8 +174,10 @@ class SettingViewModel extends _$SettingViewModel {
     NotificationType type,
     TimeOfDay time,
     SettingStateModel Function(SettingStateModel) updateState,
+    NotificationRepository notificationRepository,
+    SettingRepository settingRepository,
   ) async {
-    final res = await _notificationRepository.setNotification(
+    final res = await notificationRepository.setNotification(
       type,
       NotificationModel(
         isEnabled: type == NotificationType.todo
@@ -203,7 +212,7 @@ class SettingViewModel extends _$SettingViewModel {
         await notificationRepository.getNotification(NotificationType.todo);
     final checkNotification =
         await notificationRepository.getNotification(NotificationType.check);
-    final globalState = await settingRepository.getGlobalNotificationState();
+    final globalState = await settingRepository.getSettingState();
 
     print('--- Current State ---');
     print(state.value);

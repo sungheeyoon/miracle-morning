@@ -1,4 +1,5 @@
 import 'package:miracle_morning/core/failure/failure.dart';
+import 'package:miracle_morning/core/providers/box_providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:fpdart/fpdart.dart';
@@ -6,31 +7,22 @@ import 'package:fpdart/fpdart.dart';
 part 'setting_repository.g.dart';
 
 @riverpod
-SettingRepository settingRepository(SettingRepositoryRef ref) {
-  return SettingRepository();
+Future<SettingRepository> settingRepository(SettingRepositoryRef ref) async {
+  final box = await ref.watch(settingBoxProvider.future);
+  return SettingRepository(box);
 }
 
 class SettingRepository {
-  late Box<bool> _globalStateBox;
+  final Box<bool> _settingStateBox;
 
-  static const String globalNotificationKey = 'globalNotificationState';
+  static const String settingKey = 'settingState';
 
-  Future<Either<AppFailure, Unit>> init() async {
-    try {
-      _globalStateBox = await Hive.openBox<bool>('globalStateBox');
-      return const Right(unit);
-    } catch (e) {
-      return Left(
-        AppFailure('Failed to initialize Hive: ${e.toString()}'),
-      );
-    }
-  }
+  SettingRepository(this._settingStateBox);
 
   // 전역 알림 상태 저장
-  Future<Either<AppFailure, bool>> setGlobalNotificationState(
-      bool state) async {
+  Future<Either<AppFailure, bool>> setSettingState(bool state) async {
     try {
-      await _globalStateBox.put(globalNotificationKey, state);
+      await _settingStateBox.put(settingKey, state);
       return Right(state);
     } catch (e) {
       return Left(
@@ -40,11 +32,10 @@ class SettingRepository {
   }
 
   // 전역 알림 상태 불러오기
-  Future<Either<AppFailure, bool>> getGlobalNotificationState() async {
+  Future<Either<AppFailure, bool>> getSettingState() async {
     try {
       return Right(
-          _globalStateBox.get(globalNotificationKey, defaultValue: false) ??
-              false);
+          _settingStateBox.get(settingKey, defaultValue: false) ?? false);
     } catch (e) {
       return Left(AppFailure(
           'Failed to get global notification state: ${e.toString()}'));

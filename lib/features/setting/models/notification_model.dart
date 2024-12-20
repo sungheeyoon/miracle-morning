@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:miracle_morning/core/ids/hive_type_ids.dart';
 
 part 'notification_model.g.dart';
 
@@ -8,7 +9,7 @@ enum NotificationType {
   check,
 }
 
-@HiveType(typeId: 1)
+@HiveType(typeId: HiveTypeIds.notificationModel)
 class NotificationModel {
   @HiveField(0)
   final bool isEnabled;

@@ -1,9 +1,10 @@
+import 'package:miracle_morning/core/ids/hive_type_ids.dart';
 import 'package:uuid/uuid.dart';
 import 'package:hive/hive.dart';
 
 part 'todo_model.g.dart';
 
-@HiveType(typeId: 0)
+@HiveType(typeId: HiveTypeIds.todoModel)
 class TodoModel extends HiveObject {
   @HiveField(0)
   final String id;

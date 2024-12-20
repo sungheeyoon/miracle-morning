@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:miracle_morning/core/notification/notification_service.dart';
+import 'package:miracle_morning/features/statistics/view/pages/statistics_page.dart';
 import 'package:miracle_morning/features/setting/view/pages/setting_page.dart';
 import 'package:miracle_morning/features/home/view/pages/home_page.dart';
 
@@ -16,6 +17,7 @@ class _MainPageState extends ConsumerState<MainPage> {
 
   final pages = const [
     HomePage(),
+    StatisticsPage(),
     SettingPage(),
   ];
 
@@ -45,6 +47,10 @@ class _MainPageState extends ConsumerState<MainPage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bar_chart),
+            label: 'Statistics',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
