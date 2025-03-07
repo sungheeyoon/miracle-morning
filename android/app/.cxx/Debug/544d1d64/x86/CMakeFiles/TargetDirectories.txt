@@ -1,0 +1,2 @@
+C:/dev/projects/miracle-morning/android/app/.cxx/Debug/544d1d64/x86/CMakeFiles/edit_cache.dir
+C:/dev/projects/miracle-morning/android/app/.cxx/Debug/544d1d64/x86/CMakeFiles/rebuild_cache.dir

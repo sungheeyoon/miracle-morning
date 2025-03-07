@@ -1,3 +1,12 @@
+buildscript {
+    ext {
+        agp_version = '8.2.1'  // 이 버전으로 확실히 변경되었는지 확인
+    }
+    dependencies {
+        classpath "com.android.tools.build:gradle:$agp_version"
+    }
+}
+
 plugins {
     id "com.android.application"
     id "kotlin-android"
@@ -5,41 +14,27 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
-def localProperties = new Properties()
-def localPropertiesFile = rootProject.file("local.properties")
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.withReader("UTF-8") { reader ->
-        localProperties.load(reader)
-    }
-}
-
-def flutterVersionCode = localProperties.getProperty("flutter.versionCode")
-if (flutterVersionCode == null) {
-    flutterVersionCode = "1"
-}
-
-def flutterVersionName = localProperties.getProperty("flutter.versionName")
-if (flutterVersionName == null) {
-    flutterVersionName = "1.0"
-}
-
 android {
     namespace = "com.example.miracle_morning"
-    compileSdk = flutter.compileSdkVersion
+    compileSdkVersion flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
         coreLibraryDesugaringEnabled = true // desugaring 활성화
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
     }
 
     defaultConfig {
         applicationId = "com.example.miracle_morning"
         minSdk = flutter.minSdkVersion // 최소 지원 Android 버전
         targetSdk = flutter.targetSdkVersion // 타겟 Android 버전
-        versionCode = flutterVersionCode.toInteger()
-        versionName = flutterVersionName
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
         multiDexEnabled = true // 멀티덱스 활성화
     }
 
@@ -55,8 +50,6 @@ android {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.2.2") // desugaring 라이브러리 추가
 }
-
-
 
 flutter {
     source = "../.."
