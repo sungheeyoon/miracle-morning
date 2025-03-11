@@ -21,39 +21,66 @@ class TodoModel extends HiveObject {
   @HiveField(4)
   final DateTime createdAt;
 
+  @HiveField(5)
+  String? review;
+
+  // 기본 생성자 추가
   TodoModel({
     required this.id,
     required this.title,
     this.description,
+    this.review,
     this.isCompleted = false,
     required this.createdAt,
   });
 
+  // 비공개 생성자
+  TodoModel._({
+    required this.id,
+    required this.title,
+    this.description,
+    this.review,
+    this.isCompleted = false,
+    required this.createdAt,
+  });
+
+  // 고유한 ID를 생성하는 함수
+  static String generateUniqueId(DateTime createdAt) {
+    final timestamp = createdAt.millisecondsSinceEpoch;
+    final random = const Uuid().v4(); // UUID를 추가하여 충돌을 방지
+    return 'todo_${timestamp}_$random';
+  }
+
+  // create 메서드로만 인스턴스화 가능
   factory TodoModel.create({
     required String title,
     String? description,
+    String? review,
   }) {
-    return TodoModel(
-      id: const Uuid().v4(),
+    final createdAt = DateTime.now();
+    return TodoModel._(
+      id: generateUniqueId(createdAt), // generateUniqueId를 사용
       title: title,
       description: description,
-      createdAt: DateTime.now(),
+      review: review,
+      createdAt: createdAt,
     );
   }
 
+  // copyWith에서 id와 createdAt 수정금지
   TodoModel copyWith({
-    String? id,
     String? title,
     String? description,
     bool? isCompleted,
-    DateTime? createdAt,
+    String? review,
   }) {
-    return TodoModel(
-      id: id ?? this.id,
+    return TodoModel._(
+      id: id,
       title: title ?? this.title,
       description: description ?? this.description,
       isCompleted: isCompleted ?? this.isCompleted,
-      createdAt: createdAt ?? this.createdAt,
+      createdAt: createdAt,
+      review: review ?? this.review,
     );
   }
 }

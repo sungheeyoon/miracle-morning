@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:miracle_morning/core/notification/notification_service.dart';
 import 'package:miracle_morning/core/providers/all_boxes_provider.dart';
 import 'package:miracle_morning/main_page.dart';
 import 'package:timezone/data/latest.dart' as tz;
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('ko_KR', '');
   await Hive.initFlutter();
   tz.initializeTimeZones();
   final localNotificationService = LocalNotificationService();
@@ -30,8 +33,18 @@ class MyApp extends ConsumerWidget {
     return MaterialApp(
       title: 'Miracle Morning',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
+        scaffoldBackgroundColor: Colors.white,
+        colorScheme: const ColorScheme.light(
+          surface: Colors.white,
+        ),
+        cardColor: const Color(0xFFF8F9FF),
+        cardTheme: CardTheme(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       ),
       home: allBoxesState.when(
         data: (allBoxes) {
@@ -45,6 +58,15 @@ class MyApp extends ConsumerWidget {
           body: Center(child: Text('Error: $error')),
         ),
       ),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ko', 'KR'),
+      ],
+      locale: const Locale('ko', 'KR'),
     );
   }
 }

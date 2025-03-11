@@ -37,11 +37,31 @@ class HomeViewModel extends _$HomeViewModel {
     return TodosByDateModel(date: DateTime.now(), todos: []);
   }
 
-  /// 투두 추가 또는 수정
-  Future<void> saveOrUpdateTodo(DateTime date, TodoModel todo) async {
+  /// 투두 생성
+  Future<void> createTodo(DateTime date, TodoModel todo) async {
     try {
       final todosRepository = await ref.watch(todosRepositoryProvider.future);
-      final result = await todosRepository.saveOrUpdateTodo(date, todo);
+      final result = await todosRepository.createTodo(date, todo);
+      result.fold(
+        (failure) =>
+            state = AsyncValue.error(failure.message, StackTrace.current),
+        (_) {
+          // 날짜별 투두 갱신
+          ref.invalidate(getTodosProvider(date));
+          // 해당 월 투두 갱신
+          ref.invalidate(getMonthTodosProvider(date.year, date.month));
+        },
+      );
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+    }
+  }
+
+  /// 투두 수정
+  Future<void> updateTodo(DateTime date, TodoModel todo) async {
+    try {
+      final todosRepository = await ref.watch(todosRepositoryProvider.future);
+      final result = await todosRepository.updateTodo(date, todo);
       result.fold(
         (failure) =>
             state = AsyncValue.error(failure.message, StackTrace.current),

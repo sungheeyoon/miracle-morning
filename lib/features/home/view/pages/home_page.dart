@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:miracle_morning/core/providers/selected_date_provider.dart';
-import 'package:miracle_morning/features/home/view/widgets/confirmation_dialog.dart';
+import 'package:miracle_morning/features/home/view/widgets/create_todo_sheet.dart';
 import 'package:miracle_morning/features/home/view/widgets/todo_card.dart';
+import 'package:miracle_morning/features/home/view/widgets/todo_status_calendar.dart'; // 수정된 import
 import 'package:miracle_morning/features/home/viewmodel/home_viewmodel.dart';
-import 'create_todo_page.dart';
-import 'package:table_calendar/table_calendar.dart';
+import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -15,15 +15,18 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  CalendarFormat _calendarFormat = CalendarFormat.week;
   DateTime _focusedDay = DateTime.now();
 
   @override
   Widget build(BuildContext context) {
+    // 현재 선택된 날짜 상태 관리
     final selectedDate = ref.watch(selectedDateProvider);
+
+    // 선택된 날짜가 수정 가능한지 여부 확인 (과거 날짜는 수정 불가능)
     final isEnabled =
         ref.watch(homeViewModelProvider.notifier).isEditable(selectedDate);
-    // 현재 포커스된 달(연, 월)을 기준으로 월 단위 Todos 데이터 가져오기
+
+    // 현재 포커스된 달의 모든 Todo 데이터를 비동기로 가져오기
     final monthTodosAsync =
         ref.watch(getMonthTodosProvider(_focusedDay.year, _focusedDay.month));
 
@@ -33,77 +36,13 @@ class _HomePageState extends ConsumerState<HomePage> {
           children: [
             monthTodosAsync.when(
               data: (todosByMonthModel) {
-                return TableCalendar(
-                  firstDay: DateTime(2000),
-                  lastDay: DateTime(2100),
-                  focusedDay: _focusedDay,
-                  selectedDayPredicate: (day) => isSameDay(selectedDate, day),
-                  onDaySelected: (selectedDay, focusedDay) {
-                    ref.read(selectedDateProvider.notifier).state = selectedDay;
+                return TodoStatusCalendar(
+                  todosByMonthModel: todosByMonthModel,
+                  onFocusedDayChanged: (focusedDay) {
                     setState(() {
                       _focusedDay = focusedDay;
                     });
                   },
-                  calendarFormat: _calendarFormat,
-                  onFormatChanged: (format) {
-                    setState(() {
-                      _calendarFormat = format;
-                    });
-                  },
-                  // 페이지(월) 변화 시 현재 포커스데이 변경
-                  onPageChanged: (focusedDay) {
-                    setState(() {
-                      _focusedDay = focusedDay;
-                    });
-                  },
-                  availableCalendarFormats: const {
-                    CalendarFormat.month: 'Month',
-                    CalendarFormat.week: 'Week',
-                  },
-                  // 각 날짜에 표시할 이벤트(마커) 로딩
-                  eventLoader: (day) {
-                    final dayTodos = todosByMonthModel.getTodosByDate(day);
-                    if (dayTodos.todos.isEmpty) {
-                      return [];
-                    }
-                    final allCompleted =
-                        dayTodos.todos.every((t) => t.isCompleted);
-                    if (allCompleted) {
-                      return ['completed']; // 완료 이벤트
-                    } else {
-                      return ['incomplete']; // 미완료 이벤트
-                    }
-                  },
-                  calendarStyle:
-                      const CalendarStyle(cellMargin: EdgeInsets.all(12)),
-
-                  calendarBuilders: CalendarBuilders(
-                    markerBuilder: (context, date, events) {
-                      if (events.isEmpty) return const SizedBox.shrink();
-
-                      final eventType = events.first;
-                      Color markerColor;
-                      if (eventType == 'completed') {
-                        markerColor = Colors.green;
-                      } else if (eventType == 'incomplete') {
-                        markerColor = Colors.red;
-                      } else {
-                        return const SizedBox.shrink();
-                      }
-
-                      return Positioned(
-                        bottom: 3,
-                        child: Container(
-                          width: 5,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: markerColor,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -120,66 +59,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                           final todo = todosByDateModel.todos[index];
                           // final isEnabled = !isPastDate(selectedDate);
                           return TodoCard(
-                            todo: todo,
-                            onChanged: isEnabled
-                                ? (bool? value) {
-                                    final updatedTodo = todo.copyWith(
-                                        isCompleted: value ?? false);
-                                    ref
-                                        .read(homeViewModelProvider.notifier)
-                                        .saveOrUpdateTodo(
-                                            selectedDate, updatedTodo);
-                                  }
-                                : null,
-                            actions: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit),
-                                  onPressed: isEnabled
-                                      ? () => Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  CreateTodoPage(todo: todo),
-                                            ),
-                                          ).then((editedTodo) {
-                                            if (editedTodo != null) {
-                                              ref
-                                                  .read(homeViewModelProvider
-                                                      .notifier)
-                                                  .saveOrUpdateTodo(
-                                                      selectedDate, editedTodo);
-                                            }
-                                          })
-                                      : null,
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete),
-                                  onPressed: isEnabled
-                                      ? () => showDialog(
-                                            context: context,
-                                            builder: (context) =>
-                                                ConfirmationDialog(
-                                              title: 'Delete Todo',
-                                              content:
-                                                  'Are you sure you want to delete this todo?',
-                                              confirmButtonText: 'Delete',
-                                              onConfirm: () {
-                                                ref
-                                                    .read(homeViewModelProvider
-                                                        .notifier)
-                                                    .deleteTodo(
-                                                        selectedDate, todo.id);
-                                                Navigator.of(context).pop();
-                                              },
-                                            ),
-                                          )
-                                      : null,
-                                )
-                              ],
-                            ),
-                          );
+                              todo: todo,
+                              isEnabled: isEnabled,
+                              selectedDate: selectedDate,
+                              ref: ref);
                         },
                       );
                     },
@@ -194,22 +77,44 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
       ),
       floatingActionButton: isEnabled
-          ? FloatingActionButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const CreateTodoPage()),
-                ).then((newTodo) {
-                  if (newTodo != null) {
-                    ref
-                        .read(homeViewModelProvider.notifier)
-                        .saveOrUpdateTodo(selectedDate, newTodo);
-                  }
-                });
-              },
-              tooltip: 'Add Todo',
-              child: const Icon(Icons.add),
+          ? Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.blue.shade400,
+                    Colors.blue.shade600,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.3),
+                    spreadRadius: 1,
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: FloatingActionButton(
+                onPressed: () => showMaterialModalBottomSheet(
+                  backgroundColor: Colors.transparent,
+                  context: context,
+                  builder: (context) => const CreateTodoSheet(),
+                ),
+                tooltip: '할 일 추가하기',
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(
+                  Icons.add,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
             )
           : null,
     );

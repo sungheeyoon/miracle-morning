@@ -50,8 +50,11 @@ class _CreateTodoPageState extends ConsumerState<CreateTodoPage> {
     final notifier = ref.read(homeViewModelProvider.notifier);
 
     // 새 항목이면 추가, 기존 항목이면 업데이트
-
-    await notifier.saveOrUpdateTodo(selectedDate, newTodo);
+    if (widget.todo != null) {
+      await notifier.updateTodo(selectedDate, newTodo);
+    } else {
+      await notifier.createTodo(selectedDate, newTodo);
+    }
 
     if (mounted) {
       Navigator.pop(context, newTodo);

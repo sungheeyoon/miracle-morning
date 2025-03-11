@@ -29,6 +29,7 @@ class TodosRepository {
     return !isPastDate(date);
   }
 
+  //date에해당하는 TodosByDateModel 반환 없다면 _createEmptyTodosByDate로 empty모델 반환
   Future<Either<AppFailure, TodosByDateModel>> getTodos(DateTime date) async {
     try {
       final key = getDateKey(date);
@@ -64,26 +65,44 @@ class TodosRepository {
     }
   }
 
-  Future<Either<AppFailure, Unit>> saveOrUpdateTodo(
+  Future<Either<AppFailure, Unit>> createTodo(
       DateTime date, TodoModel todo) async {
     try {
       if (!isDateEditable(date)) {
         return Left(AppFailure('Cannot modify past dates.'));
       }
 
-      final key = getDateKey(date);
-      final existingTodos = _todoBox.get(key) ?? _createEmptyTodosByDate(date);
-      final updatedTodos =
-          existingTodos.todos.where((t) => t.id != todo.id).toList()..add(todo);
-
-      final updatedList = existingTodos.copyWith(todos: updatedTodos);
-      await _todoBox.put(key, updatedList);
-
-      await _completionRepo.updateDailyCompletion(date, updatedList.todos);
+      // TodosByDateModel에 새 Todo 추가 후 저장
+      await _updateTodos(date, (existingTodos) {
+        final updatedTodos = List<TodoModel>.from(existingTodos.todos)
+          ..add(todo);
+        return existingTodos.copyWith(todos: updatedTodos);
+      });
 
       return const Right(unit);
     } catch (e) {
-      return Left(AppFailure('Failed to save or update Todo: ${e.toString()}'));
+      return Left(AppFailure('Failed to create Todo: ${e.toString()}'));
+    }
+  }
+
+  Future<Either<AppFailure, Unit>> updateTodo(
+      DateTime date, TodoModel updatedTodo) async {
+    try {
+      if (!isDateEditable(date)) {
+        return Left(AppFailure('Cannot modify past dates.'));
+      }
+
+      // TodosByDateModel에서 Todo 수정 후 저장
+      await _updateTodos(date, (existingTodos) {
+        final updatedTodos = existingTodos.todos.map((todo) {
+          return todo.id == updatedTodo.id ? updatedTodo : todo;
+        }).toList();
+        return existingTodos.copyWith(todos: updatedTodos);
+      });
+
+      return const Right(unit);
+    } catch (e) {
+      return Left(AppFailure('Failed to update Todo: ${e.toString()}'));
     }
   }
 
@@ -115,5 +134,20 @@ class TodosRepository {
 
   TodosByDateModel _createEmptyTodosByDate(DateTime date) {
     return TodosByDateModel(date: date, todos: []);
+  }
+
+  // TodosByDateModel을 업데이트하는 공통 메소드
+  Future<void> _updateTodos(DateTime date,
+      TodosByDateModel Function(TodosByDateModel) modifyTodos) async {
+    final key = getDateKey(date);
+
+    // 기존 TodosByDateModel을 가져오거나 새로 생성
+    final existingTodos = _todoBox.get(key) ?? TodosByDateModel(date: date);
+
+    // Todos 수정
+    final updatedList = modifyTodos(existingTodos);
+
+    // Hive에 업데이트된 TodosByDateModel 저장
+    await _todoBox.put(key, updatedList);
   }
 }
