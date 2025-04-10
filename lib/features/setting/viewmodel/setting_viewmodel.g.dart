@@ -6,7 +6,25 @@ part of 'setting_viewmodel.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$settingViewModelHash() => r'69e27b6da508779f1908eb44a6993feb5a64ea36';
+String _$notificationPermissionHash() =>
+    r'bc80ef8322955fd4347614ed4b5250f7ea3c0557';
+
+/// See also [notificationPermission].
+@ProviderFor(notificationPermission)
+final notificationPermissionProvider = AutoDisposeFutureProvider<bool>.internal(
+  notificationPermission,
+  name: r'notificationPermissionProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$notificationPermissionHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef NotificationPermissionRef = AutoDisposeFutureProviderRef<bool>;
+String _$settingViewModelHash() => r'abb95a730eda8619dd4053a403d7a005ba06c9c9';
 
 /// See also [SettingViewModel].
 @ProviderFor(SettingViewModel)

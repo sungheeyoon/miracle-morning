@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:miracle_morning/core/providers/selected_date_provider.dart';
+import 'package:miracle_morning/core/theme/app_colors.dart';
+import 'package:miracle_morning/core/theme/app_text_styles.dart';
+import 'package:miracle_morning/core/widgets/common_widgets.dart';
 import 'package:miracle_morning/features/home/models/todo_model.dart';
 import 'package:miracle_morning/features/home/viewmodel/home_viewmodel.dart';
 
@@ -61,98 +64,113 @@ class _CreateTodoSheetState extends ConsumerState<CreateTodoSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final selectedDate = ref.watch(selectedDateProvider);
+
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowColor,
+            blurRadius: 10,
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Padding(
         padding: EdgeInsets.only(
           left: 24,
           right: 24,
           top: 16,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 드래그 핸들
             Center(
               child: Container(
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: AppColors.grey300,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
+            const SizedBox(height: 20),
+
+            // 날짜 표시
+            DateDisplayWidget(
+              date: selectedDate,
+              showIcon: true,
+              showWeekday: true,
+              fullFormat: true,
+              style: AppTextStyles.body2.copyWith(color: AppColors.grey600),
+            ),
+
             const SizedBox(height: 24),
-            TextField(
-              maxLines: null,
-              controller: titleController,
-              focusNode: titleFocusNode,
-              decoration: InputDecoration(
-                hintText: "제목을 입력하세요",
-                hintStyle: TextStyle(color: Colors.grey[400]),
-                filled: true,
-                fillColor: Colors.grey[50],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.all(16),
+
+            // 제목 입력 필드
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.grey50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.grey200),
               ),
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
+              child: TextField(
+                maxLines: null,
+                controller: titleController,
+                focusNode: titleFocusNode,
+                decoration: const InputDecoration(
+                  hintText: "할 일을 입력하세요",
+                  hintStyle: TextStyle(color: AppColors.grey400),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.all(16),
+                ),
+                style: AppTextStyles.subtitle1,
               ),
             ),
+
             const SizedBox(height: 16),
-            TextField(
-              maxLines: 3,
-              controller: descriptionController,
-              decoration: InputDecoration(
-                hintText: "설명을 입력하세요",
-                hintStyle: TextStyle(color: Colors.grey[400]),
-                filled: true,
-                fillColor: Colors.grey[50],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+
+            // 설명 입력 필드
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.grey50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.grey200),
+              ),
+              child: TextField(
+                maxLines: 3,
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  hintText: "상세 내용 또는 목표를 입력하세요",
+                  hintStyle: TextStyle(color: AppColors.grey400),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.all(16),
                 ),
-                contentPadding: const EdgeInsets.all(16),
+                style: AppTextStyles.body1,
               ),
             ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: isButtonEnabled
-                    ? () async {
-                        await createTodo();
-                        if (!context.mounted) return;
-                        Navigator.pop(context);
-                      }
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      isButtonEnabled ? Colors.blue : Colors.grey[300],
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  '추가하기',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
+
+            const SizedBox(height: 20),
+
+            // 추가하기 버튼
+            GradientButton(
+              label: '추가하기',
+              icon: Icons.add_task,
+              gradientColors: AppColors.primaryGradient,
+              isLoading: false,
+              onPressed: isButtonEnabled
+                  ? () async {
+                      await createTodo();
+                      if (!context.mounted) return;
+                      Navigator.pop(context);
+                    }
+                  : () {},
             ),
           ],
         ),

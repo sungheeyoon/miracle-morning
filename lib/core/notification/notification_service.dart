@@ -27,10 +27,8 @@ class LocalNotificationService {
         onDidReceiveNotificationResponse: _onDidReceiveNotificationResponse);
   }
 
-  /// 알림 클릭 시 처리
   static void _onDidReceiveNotificationResponse(NotificationResponse response) {
-    print('알림 클릭: ${response.payload}');
-    // 필요시 여기에 클릭 시 로직 추가
+    // 알림 클릭 시 처리
   }
 
   Future<NotificationDetails> _notificationDetails() async {
@@ -48,20 +46,32 @@ class LocalNotificationService {
         android: androidNotificationDetails, iOS: darwinNotificationDetails);
   }
 
+  // 실제 알림 권한 확인 메서드 (개선됨)
   Future<bool> checkNotificationPermission() async {
-    final settings =
-        await _localNotificationService.getNotificationAppLaunchDetails();
-    return settings?.didNotificationLaunchApp ?? false;
+    if (Platform.isIOS) {
+      // iOS에서는 직접적인 확인이 어려워 임시 방편으로 권한 요청 시도
+      final permissionStatus = await _requestIOSPermission();
+      return permissionStatus ?? false;
+    } else if (Platform.isAndroid) {
+      // Android에서 권한 상태 확인
+      final permissionStatus = await _localNotificationService
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.areNotificationsEnabled();
+      return permissionStatus ?? false;
+    }
+    return false;
   }
 
   Future<bool?> requestPermission() async {
+    bool? result;
     if (Platform.isIOS) {
-      _requestIOSPermission();
+      result = await _requestIOSPermission();
     }
     if (Platform.isAndroid) {
-      _requestAndroidPermission();
+      result = await _requestAndroidPermission();
     }
-    return null;
+    return result;
   }
 
   Future<bool?> _requestIOSPermission() async {
@@ -82,13 +92,18 @@ class LocalNotificationService {
         ?.requestNotificationsPermission();
   }
 
-  // 반복 알림 예약
   Future<void> scheduleDailyNotification({
     required int id,
     required String title,
     required String body,
     required TimeOfDay time,
   }) async {
+    // 권한 확인 후 알림 예약
+    final hasPermission = await checkNotificationPermission();
+    if (!hasPermission) {
+      return; // 권한 없으면 알림 설정 불가
+    }
+    
     final tz.TZDateTime scheduleTime = _convertToNextInstance(time);
 
     await _localNotificationService.zonedSchedule(
@@ -100,11 +115,10 @@ class LocalNotificationService {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.wallClockTime,
-      matchDateTimeComponents: DateTimeComponents.time, // 매일 같은 시간 반복
+      matchDateTimeComponents: DateTimeComponents.time,
     );
   }
 
-  // 시간 변환
   tz.TZDateTime _convertToNextInstance(TimeOfDay time) {
     final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
     tz.TZDateTime scheduledTime = tz.TZDateTime(
@@ -123,7 +137,6 @@ class LocalNotificationService {
     return scheduledTime;
   }
 
-  // 알림 취소
   Future<void> cancelNotification(int id) async {
     await _localNotificationService.cancel(id);
   }
@@ -137,7 +150,8 @@ class LocalNotificationService {
     return await _localNotificationService.show(id, title, body, details);
   }
 
+  // 알림 설정 화면으로 이동 (수정)
   Future<void> openNotificationSettings() async {
-    AppSettings.openAppSettings(type: AppSettingsType.location);
+    AppSettings.openAppSettings(type: AppSettingsType.notification);
   }
 }

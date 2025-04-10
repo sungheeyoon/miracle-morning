@@ -6,7 +6,7 @@ part of 'home_viewmodel.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$getTodosHash() => r'f819c2ebf300e467014dbf1eb2722d19cc758f39';
+String _$getTodosHash() => r'79b101557b4958d3ae3628900d54d179a898abfa';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -72,7 +72,7 @@ class GetTodosFamily extends Family<AsyncValue<TodosByDateModel>> {
 }
 
 /// See also [getTodos].
-class GetTodosProvider extends AutoDisposeFutureProvider<TodosByDateModel> {
+class GetTodosProvider extends FutureProvider<TodosByDateModel> {
   /// See also [getTodos].
   GetTodosProvider(
     DateTime date,
@@ -123,7 +123,7 @@ class GetTodosProvider extends AutoDisposeFutureProvider<TodosByDateModel> {
   }
 
   @override
-  AutoDisposeFutureProviderElement<TodosByDateModel> createElement() {
+  FutureProviderElement<TodosByDateModel> createElement() {
     return _GetTodosProviderElement(this);
   }
 
@@ -143,13 +143,12 @@ class GetTodosProvider extends AutoDisposeFutureProvider<TodosByDateModel> {
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin GetTodosRef on AutoDisposeFutureProviderRef<TodosByDateModel> {
+mixin GetTodosRef on FutureProviderRef<TodosByDateModel> {
   /// The parameter `date` of this provider.
   DateTime get date;
 }
 
-class _GetTodosProviderElement
-    extends AutoDisposeFutureProviderElement<TodosByDateModel>
+class _GetTodosProviderElement extends FutureProviderElement<TodosByDateModel>
     with GetTodosRef {
   _GetTodosProviderElement(super.provider);
 
@@ -157,7 +156,7 @@ class _GetTodosProviderElement
   DateTime get date => (origin as GetTodosProvider).date;
 }
 
-String _$getMonthTodosHash() => r'aa2d61cdb86ca73c0c8f6b43b5f7e0a9dc356d45';
+String _$getMonthTodosHash() => r'ecd4a3472308fa1226eef17af5723776946af830';
 
 /// See also [getMonthTodos].
 @ProviderFor(getMonthTodos)
@@ -205,8 +204,7 @@ class GetMonthTodosFamily extends Family<AsyncValue<TodosByMonthModel>> {
 }
 
 /// See also [getMonthTodos].
-class GetMonthTodosProvider
-    extends AutoDisposeFutureProvider<TodosByMonthModel> {
+class GetMonthTodosProvider extends FutureProvider<TodosByMonthModel> {
   /// See also [getMonthTodos].
   GetMonthTodosProvider(
     int year,
@@ -264,7 +262,7 @@ class GetMonthTodosProvider
   }
 
   @override
-  AutoDisposeFutureProviderElement<TodosByMonthModel> createElement() {
+  FutureProviderElement<TodosByMonthModel> createElement() {
     return _GetMonthTodosProviderElement(this);
   }
 
@@ -287,7 +285,7 @@ class GetMonthTodosProvider
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin GetMonthTodosRef on AutoDisposeFutureProviderRef<TodosByMonthModel> {
+mixin GetMonthTodosRef on FutureProviderRef<TodosByMonthModel> {
   /// The parameter `year` of this provider.
   int get year;
 
@@ -296,8 +294,7 @@ mixin GetMonthTodosRef on AutoDisposeFutureProviderRef<TodosByMonthModel> {
 }
 
 class _GetMonthTodosProviderElement
-    extends AutoDisposeFutureProviderElement<TodosByMonthModel>
-    with GetMonthTodosRef {
+    extends FutureProviderElement<TodosByMonthModel> with GetMonthTodosRef {
   _GetMonthTodosProviderElement(super.provider);
 
   @override
@@ -306,7 +303,7 @@ class _GetMonthTodosProviderElement
   int get month => (origin as GetMonthTodosProvider).month;
 }
 
-String _$homeViewModelHash() => r'68bc8c74f7233d431c4172cf49642ac16503d628';
+String _$homeViewModelHash() => r'23604f6c357c9852694272ea8563b0477e2e998f';
 
 /// See also [HomeViewModel].
 @ProviderFor(HomeViewModel)

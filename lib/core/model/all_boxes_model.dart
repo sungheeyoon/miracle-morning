@@ -7,6 +7,7 @@ class AllBoxesModel {
   final Box settingBox;
   final Box completionBox;
   final Box streakBox;
+  final Box growthBox;
 
   AllBoxesModel({
     required this.todoBox,
@@ -14,5 +15,6 @@ class AllBoxesModel {
     required this.settingBox,
     required this.completionBox,
     required this.streakBox,
+    required this.growthBox,
   });
 }

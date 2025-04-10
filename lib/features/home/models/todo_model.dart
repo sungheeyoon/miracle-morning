@@ -24,7 +24,6 @@ class TodoModel extends HiveObject {
   @HiveField(5)
   String? review;
 
-  // 기본 생성자 추가
   TodoModel({
     required this.id,
     required this.title,
@@ -34,7 +33,6 @@ class TodoModel extends HiveObject {
     required this.createdAt,
   });
 
-  // 비공개 생성자
   TodoModel._({
     required this.id,
     required this.title,
@@ -44,14 +42,12 @@ class TodoModel extends HiveObject {
     required this.createdAt,
   });
 
-  // 고유한 ID를 생성하는 함수
   static String generateUniqueId(DateTime createdAt) {
     final timestamp = createdAt.millisecondsSinceEpoch;
-    final random = const Uuid().v4(); // UUID를 추가하여 충돌을 방지
+    final random = const Uuid().v4();
     return 'todo_${timestamp}_$random';
   }
 
-  // create 메서드로만 인스턴스화 가능
   factory TodoModel.create({
     required String title,
     String? description,
@@ -59,7 +55,7 @@ class TodoModel extends HiveObject {
   }) {
     final createdAt = DateTime.now();
     return TodoModel._(
-      id: generateUniqueId(createdAt), // generateUniqueId를 사용
+      id: generateUniqueId(createdAt),
       title: title,
       description: description,
       review: review,
@@ -67,7 +63,6 @@ class TodoModel extends HiveObject {
     );
   }
 
-  // copyWith에서 id와 createdAt 수정금지
   TodoModel copyWith({
     String? title,
     String? description,

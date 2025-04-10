@@ -10,6 +10,18 @@ class TodosByMonthModel {
     required this.month,
     List<TodosByDateModel>? todosByDates,
   }) : todosByDates = todosByDates ?? [];
+  
+  /// 빈 월 데이터 생성 (로딩 중이나 에러 상태에서 사용)
+  factory TodosByMonthModel.empty({
+    required int year,
+    required int month,
+  }) {
+    return TodosByMonthModel(
+      year: year,
+      month: month,
+      todosByDates: [],
+    );
+  }
 
   TodosByMonthModel copyWith({
     int? year,

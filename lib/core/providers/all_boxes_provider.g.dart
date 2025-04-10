@@ -6,7 +6,7 @@ part of 'all_boxes_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$allBoxesHash() => r'6ccda48c9d6583bff5ffc99585a919383932b505';
+String _$allBoxesHash() => r'03a69cd27e643a6b1ef0b5dd3e30b551da8daa68';
 
 /// See also [allBoxes].
 @ProviderFor(allBoxes)

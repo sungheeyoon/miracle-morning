@@ -40,6 +40,27 @@ class TodosRepository {
     }
   }
 
+  // 특정 기간의 모든 TodosByDateModel 가져오기
+  Future<Either<AppFailure, List<TodosByDateModel>>> getTodosByDateRange(
+      DateTime startDate, DateTime endDate) async {
+    try {
+      List<TodosByDateModel> result = [];
+
+      for (var date = startDate;
+          !date.isAfter(endDate);
+          date = date.add(const Duration(days: 1))) {
+        final key = getDateKey(date);
+        final todosByDate = _todoBox.get(key) ?? _createEmptyTodosByDate(date);
+        result.add(todosByDate);
+      }
+
+      return Right(result);
+    } catch (e) {
+      return Left(
+          AppFailure('Failed to load Todos by date range: ${e.toString()}'));
+    }
+  }
+
   Future<Either<AppFailure, TodosByMonthModel>> getMonthTodos(
       int year, int month) async {
     try {
@@ -79,6 +100,11 @@ class TodosRepository {
         return existingTodos.copyWith(todos: updatedTodos);
       });
 
+      // completion 상태 업데이트 (추가)
+      final updatedTodos = (await getTodos(date))
+          .getOrElse((failure) => _createEmptyTodosByDate(date));
+      await _completionRepo.updateDailyCompletion(date, updatedTodos.todos);
+
       return const Right(unit);
     } catch (e) {
       return Left(AppFailure('Failed to create Todo: ${e.toString()}'));
@@ -100,9 +126,41 @@ class TodosRepository {
         return existingTodos.copyWith(todos: updatedTodos);
       });
 
+      // completion 상태 업데이트 (추가)
+      final updatedTodos = (await getTodos(date))
+          .getOrElse((failure) => _createEmptyTodosByDate(date));
+      await _completionRepo.updateDailyCompletion(date, updatedTodos.todos);
+
       return const Right(unit);
     } catch (e) {
       return Left(AppFailure('Failed to update Todo: ${e.toString()}'));
+    }
+  }
+
+  // Todo 상태 업데이트 (isCompleted 전환)
+  Future<Either<AppFailure, Unit>> toggleTodoCompletion(
+      DateTime date, String todoId) async {
+    try {
+      if (!isDateEditable(date)) {
+        return Left(AppFailure('Cannot modify past dates.'));
+      }
+
+      // 현재 Todo 가져오기
+      final todosResult = await getTodos(date);
+
+      return todosResult.fold((failure) => Left(failure), (todosByDate) async {
+        final todo = todosByDate.todos.firstWhere((t) => t.id == todoId,
+            orElse: () => throw Exception('Todo not found with ID: $todoId'));
+
+        // 완료 상태 전환
+        final updatedTodo = todo.copyWith(isCompleted: !todo.isCompleted);
+
+        // Todo 업데이트
+        return await updateTodo(date, updatedTodo);
+      });
+    } catch (e) {
+      return Left(
+          AppFailure('Failed to toggle Todo completion: ${e.toString()}'));
     }
   }
 
@@ -123,8 +181,10 @@ class TodosRepository {
       } else {
         final updatedList = existingTodos.copyWith(todos: updatedTodos);
         await _todoBox.put(key, updatedList);
-        await _completionRepo.updateDailyCompletion(date, updatedList.todos);
       }
+
+      // completion 상태 업데이트
+      await _completionRepo.updateDailyCompletion(date, updatedTodos);
 
       return const Right(unit);
     } catch (e) {
@@ -142,12 +202,39 @@ class TodosRepository {
     final key = getDateKey(date);
 
     // 기존 TodosByDateModel을 가져오거나 새로 생성
-    final existingTodos = _todoBox.get(key) ?? TodosByDateModel(date: date);
+    final existingTodos = _todoBox.get(key) ?? _createEmptyTodosByDate(date);
 
     // Todos 수정
     final updatedList = modifyTodos(existingTodos);
 
     // Hive에 업데이트된 TodosByDateModel 저장
     await _todoBox.put(key, updatedList);
+  }
+
+  // 일괄 할 일 업데이트 (스트리밍 등에 사용)
+  Future<Either<AppFailure, Unit>> batchUpdateTodos(
+      DateTime date, List<TodoModel> todos) async {
+    try {
+      if (!isDateEditable(date)) {
+        return Left(AppFailure('Cannot modify past dates.'));
+      }
+
+      final key = getDateKey(date);
+      final todosByDate = _createEmptyTodosByDate(date).copyWith(todos: todos);
+
+      // 비어있는 경우 삭제
+      if (todos.isEmpty) {
+        await _todoBox.delete(key);
+      } else {
+        await _todoBox.put(key, todosByDate);
+      }
+
+      // completion 상태 업데이트
+      await _completionRepo.updateDailyCompletion(date, todos);
+
+      return const Right(unit);
+    } catch (e) {
+      return Left(AppFailure('Failed to batch update todos: ${e.toString()}'));
+    }
   }
 }

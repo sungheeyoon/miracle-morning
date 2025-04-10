@@ -6,6 +6,7 @@ class SettingStateModel {
   final bool isCheckNotificationEnabled;
   final TimeOfDay todoNotificationTime;
   final TimeOfDay checkNotificationTime;
+  final bool hasNotificationPermission;
 
   const SettingStateModel({
     required this.isAllNotificationEnabled,
@@ -13,6 +14,7 @@ class SettingStateModel {
     required this.isCheckNotificationEnabled,
     required this.todoNotificationTime,
     required this.checkNotificationTime,
+    this.hasNotificationPermission = false,
   });
 
   SettingStateModel copyWith({
@@ -21,6 +23,7 @@ class SettingStateModel {
     bool? isCheckNotificationEnabled,
     TimeOfDay? todoNotificationTime,
     TimeOfDay? checkNotificationTime,
+    bool? hasNotificationPermission,
   }) {
     return SettingStateModel(
       isAllNotificationEnabled:
@@ -32,6 +35,8 @@ class SettingStateModel {
       todoNotificationTime: todoNotificationTime ?? this.todoNotificationTime,
       checkNotificationTime:
           checkNotificationTime ?? this.checkNotificationTime,
+      hasNotificationPermission: 
+          hasNotificationPermission ?? this.hasNotificationPermission,
     );
   }
 
@@ -43,7 +48,8 @@ SettingState {
   isTodoNotificationEnabled: $isTodoNotificationEnabled,
   isCheckNotificationEnabled: $isCheckNotificationEnabled,
   todoNotificationTime: ${todoNotificationTime.hour}:${todoNotificationTime.minute.toString().padLeft(2, '0')},
-  checkNotificationTime: ${checkNotificationTime.hour}:${checkNotificationTime.minute.toString().padLeft(2, '0')}
+  checkNotificationTime: ${checkNotificationTime.hour}:${checkNotificationTime.minute.toString().padLeft(2, '0')},
+  hasNotificationPermission: $hasNotificationPermission
 }
 ''';
   }

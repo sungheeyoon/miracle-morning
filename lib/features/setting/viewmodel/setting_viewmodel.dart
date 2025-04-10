@@ -1,5 +1,6 @@
 // lib/features/setting/viewmodel/setting_viewmodel.dart
 import 'package:flutter/material.dart';
+import 'package:miracle_morning/core/notification/notification_service.dart';
 import 'package:miracle_morning/features/setting/models/notification_model.dart';
 import 'package:miracle_morning/features/setting/models/setting_state_model.dart';
 import 'package:miracle_morning/features/setting/repositories/notification_repository.dart';
@@ -8,26 +9,48 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'setting_viewmodel.g.dart';
 
+// 알림 권한 상태 제공자
+@riverpod
+Future<bool> notificationPermission(NotificationPermissionRef ref) async {
+  final notificationService = LocalNotificationService();
+  return await notificationService.checkNotificationPermission();
+}
+
 @riverpod
 class SettingViewModel extends _$SettingViewModel {
+  late LocalNotificationService _notificationService;
+
   @override
   Future<SettingStateModel> build() async {
-    // 비동기적으로 Repository Providers를 초기화
+    _notificationService = LocalNotificationService();
     final notificationRepository =
         await ref.watch(notificationRepositoryProvider.future);
     final settingRepository = await ref.watch(settingRepositoryProvider.future);
-
-    return _initialize(notificationRepository, settingRepository);
+    
+    // 알림 권한 상태 확인
+    final hasPermission = await _notificationService.checkNotificationPermission();
+    
+    return _initialize(notificationRepository, settingRepository, hasPermission);
   }
 
-  /// 초기 상태 로드
   Future<SettingStateModel> _initialize(
     NotificationRepository notificationRepository,
     SettingRepository settingRepository,
+    bool hasPermission,
   ) async {
-    bool isAllNotificationEnabled = false;
+    // 권한이 없으면 모든 알림 설정은 비활성화
+    if (!hasPermission) {
+      return SettingStateModel(
+        isAllNotificationEnabled: false,
+        isTodoNotificationEnabled: false,
+        isCheckNotificationEnabled: false,
+        todoNotificationTime: const TimeOfDay(hour: 8, minute: 0),
+        checkNotificationTime: const TimeOfDay(hour: 21, minute: 0),
+        hasNotificationPermission: false,
+      );
+    }
 
-    // 전역 알림 상태 로드
+    bool isAllNotificationEnabled = false;
     final globalStateResult = await settingRepository.getSettingState();
     globalStateResult.fold(
       (failure) {
@@ -38,9 +61,9 @@ class SettingViewModel extends _$SettingViewModel {
       },
     );
 
-    // TODO 알림 로드
-    bool isTodoNotificationEnabled = isAllNotificationEnabled;
     TimeOfDay todoNotificationTime = const TimeOfDay(hour: 8, minute: 0);
+    bool isTodoNotificationEnabled = false;
+    
     final todoResult =
         await notificationRepository.getNotification(NotificationType.todo);
     todoResult.fold(
@@ -48,14 +71,14 @@ class SettingViewModel extends _$SettingViewModel {
         state = AsyncValue.error(failure.message, StackTrace.current);
       },
       (todoNotification) {
-        isTodoNotificationEnabled = todoNotification.isEnabled;
+        isTodoNotificationEnabled = todoNotification.isEnabled && isAllNotificationEnabled;
         todoNotificationTime = todoNotification.time;
       },
     );
 
-    // CHECK 알림 로드
-    bool isCheckNotificationEnabled = isAllNotificationEnabled;
     TimeOfDay checkNotificationTime = const TimeOfDay(hour: 21, minute: 0);
+    bool isCheckNotificationEnabled = false;
+    
     final checkResult =
         await notificationRepository.getNotification(NotificationType.check);
     checkResult.fold(
@@ -63,7 +86,7 @@ class SettingViewModel extends _$SettingViewModel {
         state = AsyncValue.error(failure.message, StackTrace.current);
       },
       (checkNotification) {
-        isCheckNotificationEnabled = checkNotification.isEnabled;
+        isCheckNotificationEnabled = checkNotification.isEnabled && isAllNotificationEnabled;
         checkNotificationTime = checkNotification.time;
       },
     );
@@ -74,26 +97,107 @@ class SettingViewModel extends _$SettingViewModel {
       isCheckNotificationEnabled: isCheckNotificationEnabled,
       todoNotificationTime: todoNotificationTime,
       checkNotificationTime: checkNotificationTime,
+      hasNotificationPermission: true,
     );
   }
 
-  /// 전역 알림 토글
+  // 알림 설정 화면으로 이동
+  Future<void> openNotificationSettings() async {
+    await _notificationService.openNotificationSettings();
+  }
+
+  // 알림 권한 확인
+  Future<bool> checkNotificationPermission() async {
+    return await _notificationService.checkNotificationPermission();
+  }
+
+  // 전체 알림 토글 (개선된 버전)
   Future<void> toggleAllNotifications(bool isEnabled) async {
+    // 권한 확인
+    final hasPermission = await checkNotificationPermission();
+    if (!hasPermission && isEnabled) {
+      // 권한이 없는데 활성화하려고 하면 상태는 변경하지 않고 false 반환
+      return;
+    }
+
     final settingRepository = await ref.watch(settingRepositoryProvider.future);
+    final notificationRepository = await ref.watch(notificationRepositoryProvider.future);
+    
+    // 전체 설정 저장
     final res = await settingRepository.setSettingState(isEnabled);
+    
     res.fold(
       (failure) => _setError(failure.message),
-      (_) {
-        _setState(state.value!.copyWith(isAllNotificationEnabled: isEnabled));
+      (_) async {
+        // 전체 알림이 꺼지면 모든 하위 알림도 꺼짐
+        if (!isEnabled) {
+          // TODO 알림 비활성화
+          await _toggleNotification(
+            NotificationType.todo,
+            false,
+            state.value!.todoNotificationTime,
+            (s) => s.copyWith(
+              isAllNotificationEnabled: false,
+              isTodoNotificationEnabled: false,
+            ),
+            notificationRepository,
+            settingRepository,
+          );
+          
+          // CHECK 알림 비활성화
+          await _toggleNotification(
+            NotificationType.check,
+            false,
+            state.value!.checkNotificationTime,
+            (s) => s.copyWith(
+              isAllNotificationEnabled: false,
+              isCheckNotificationEnabled: false,
+            ),
+            notificationRepository,
+            settingRepository,
+          );
+        } else {
+          // 전체 알림 활성화 시 하위 알림도 같이 활성화
+          await _toggleNotification(
+            NotificationType.todo,
+            true,
+            state.value!.todoNotificationTime,
+            (s) => s.copyWith(
+              isAllNotificationEnabled: true,
+              isTodoNotificationEnabled: true,
+            ),
+            notificationRepository,
+            settingRepository,
+          );
+          
+          await _toggleNotification(
+            NotificationType.check,
+            true,
+            state.value!.checkNotificationTime,
+            (s) => s.copyWith(
+              isAllNotificationEnabled: true,
+              isCheckNotificationEnabled: true,
+            ),
+            notificationRepository,
+            settingRepository,
+          );
+        }
       },
     );
   }
 
-  /// TODO 알림 토글
-  Future<void> toggleTodoNotification(bool isEnabled) async {
+  // TODO 알림 토글 (개선된 버전)
+  Future<bool> toggleTodoNotification(bool isEnabled) async {
+    // 권한 확인
+    final hasPermission = await checkNotificationPermission();
+    if (!hasPermission && isEnabled) {
+      return false; // 권한 없이 활성화 시도는 실패
+    }
+
     final notificationRepository =
         await ref.watch(notificationRepositoryProvider.future);
     final settingRepository = await ref.watch(settingRepositoryProvider.future);
+    
     await _toggleNotification(
       NotificationType.todo,
       isEnabled,
@@ -103,13 +207,22 @@ class SettingViewModel extends _$SettingViewModel {
       notificationRepository,
       settingRepository,
     );
+    
+    return true;
   }
 
-  /// CHECK 알림 토글
-  Future<void> toggleCheckNotification(bool isEnabled) async {
+  // CHECK 알림 토글 (개선된 버전)
+  Future<bool> toggleCheckNotification(bool isEnabled) async {
+    // 권한 확인
+    final hasPermission = await checkNotificationPermission();
+    if (!hasPermission && isEnabled) {
+      return false; // 권한 없이 활성화 시도는 실패
+    }
+
     final notificationRepository =
         await ref.watch(notificationRepositoryProvider.future);
     final settingRepository = await ref.watch(settingRepositoryProvider.future);
+    
     await _toggleNotification(
       NotificationType.check,
       isEnabled,
@@ -119,9 +232,10 @@ class SettingViewModel extends _$SettingViewModel {
       notificationRepository,
       settingRepository,
     );
+    
+    return true;
   }
 
-  /// 알림 토글 로직
   Future<void> _toggleNotification(
     NotificationType type,
     bool isEnabled,
@@ -141,7 +255,6 @@ class SettingViewModel extends _$SettingViewModel {
     );
   }
 
-  /// TODO 알림 시간 업데이트
   Future<void> updateTodoNotificationTime(TimeOfDay time) async {
     final notificationRepository =
         await ref.watch(notificationRepositoryProvider.future);
@@ -155,7 +268,6 @@ class SettingViewModel extends _$SettingViewModel {
     );
   }
 
-  /// CHECK 알림 시간 업데이트
   Future<void> updateCheckNotificationTime(TimeOfDay time) async {
     final notificationRepository =
         await ref.watch(notificationRepositoryProvider.future);
@@ -169,7 +281,6 @@ class SettingViewModel extends _$SettingViewModel {
     );
   }
 
-  /// 알림 시간 업데이트 로직
   Future<void> _updateNotificationTime(
     NotificationType type,
     TimeOfDay time,
@@ -193,42 +304,11 @@ class SettingViewModel extends _$SettingViewModel {
     );
   }
 
-  /// 상태 변경
   void _setState(SettingStateModel newState) {
     state = AsyncValue.data(newState);
   }
 
-  /// 에러 설정
   void _setError(String message) {
     state = AsyncValue.error(message, StackTrace.current);
-  }
-
-  /// 현재 상태 및 Hive Box 데이터 출력
-  Future<void> _printCurrentState(
-    NotificationRepository notificationRepository,
-    SettingRepository settingRepository,
-  ) async {
-    final todoNotification =
-        await notificationRepository.getNotification(NotificationType.todo);
-    final checkNotification =
-        await notificationRepository.getNotification(NotificationType.check);
-    final globalState = await settingRepository.getSettingState();
-
-    print('--- Current State ---');
-    print(state.value);
-
-    print('--- Hive Data ---');
-    todoNotification.fold(
-      (failure) => print('TODO Notification Error: ${failure.message}'),
-      (data) => print('TODO Notification: $data'),
-    );
-    checkNotification.fold(
-      (failure) => print('CHECK Notification Error: ${failure.message}'),
-      (data) => print('CHECK Notification: $data'),
-    );
-    globalState.fold(
-      (failure) => print('Global State Error: ${failure.message}'),
-      (data) => print('Global Notification State: $data'),
-    );
   }
 }

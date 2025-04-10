@@ -7,7 +7,7 @@ part of 'completion_repository.dart';
 // **************************************************************************
 
 String _$completionRepositoryHash() =>
-    r'e2cd9472b7ef2d391ee1fa830503e3e0f4be9de7';
+    r'e8803d7d19af09bc50ab265bc504c07dce5e0bd9';
 
 /// See also [completionRepository].
 @ProviderFor(completionRepository)
